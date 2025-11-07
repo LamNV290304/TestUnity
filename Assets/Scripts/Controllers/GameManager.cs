@@ -94,6 +94,9 @@ public class GameManager : MonoBehaviour
         IdenticalBarController barController = m_uiMenu.GetIdenticalBarController();
         m_boardController.StartGame(this, m_gameSettings, barController);
         m_barController = barController;
+
+        m_barController.Setup(mode);
+
         if (mode == eLevelMode.MOVES)
         {
             m_levelCondition = this.gameObject.AddComponent<LevelMoves>();
@@ -299,4 +302,6 @@ public class GameManager : MonoBehaviour
 
         return availableCells[0];
     }
+
+
 }

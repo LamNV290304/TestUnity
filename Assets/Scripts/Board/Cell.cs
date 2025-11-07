@@ -45,6 +45,7 @@ public class Cell : MonoBehaviour
     {
         Item = item;
         Item.SetCell(this);
+        m_isClicked = false;
     }
 
     public void ApplyItemPosition(bool withAppearAnimation)
