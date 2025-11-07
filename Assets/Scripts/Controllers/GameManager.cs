@@ -84,7 +84,8 @@ public class GameManager : MonoBehaviour
     public void LoadLevel(eLevelMode mode)
     {
         m_boardController = new GameObject("BoardController").AddComponent<BoardController>();
-        m_boardController.StartGame(this, m_gameSettings);
+        IdenticalBarController barController = m_uiMenu.GetIdenticalBarController();
+        m_boardController.StartGame(this, m_gameSettings, barController);
 
         if (mode == eLevelMode.MOVES)
         {

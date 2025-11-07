@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class Cell : MonoBehaviour
 {
+    private BoardController m_boardController;
+    private bool m_isClicked = false;
     public int BoardX { get; private set; }
 
     public int BoardY { get; private set; }
@@ -20,10 +22,11 @@ public class Cell : MonoBehaviour
 
     public bool IsEmpty => Item == null;
 
-    public void Setup(int cellX, int cellY)
+    public void Setup(int cellX, int cellY, BoardController boardController)
     {
         this.BoardX = cellX;
         this.BoardY = cellY;
+        this.m_boardController = boardController;
     }
 
     public bool IsNeighbour(Cell other)
@@ -89,5 +92,20 @@ public class Cell : MonoBehaviour
     internal void ApplyItemMoveToPosition()
     {
         Item.AnimationMoveToPosition();
+    }
+
+    private void OnMouseDown()
+    {
+        if (!IsEmpty && !m_isClicked && m_boardController != null && !m_boardController.IsBusy)
+        {
+            m_isClicked = true; 
+
+            m_boardController.OnCellClicked(this);
+        }
+    }
+
+    public void EnableClick()
+    {
+        m_isClicked = false;
     }
 }

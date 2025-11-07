@@ -7,6 +7,7 @@ using UnityEngine;
 
 public class Board
 {
+    private BoardController m_boardController;
     public enum eMatchDirection
     {
         NONE,
@@ -25,7 +26,7 @@ public class Board
 
     private int m_matchMin;
 
-    public Board(Transform transform, GameSettings gameSettings)
+    public Board(Transform transform, GameSettings gameSettings, BoardController boardController)
     {
         m_root = transform;
 
@@ -36,6 +37,7 @@ public class Board
 
         m_cells = new Cell[boardSizeX, boardSizeY];
 
+        m_boardController = boardController;
         CreateBoard();
     }
 
@@ -52,7 +54,7 @@ public class Board
                 go.transform.SetParent(m_root);
 
                 Cell cell = go.GetComponent<Cell>();
-                cell.Setup(x, y);
+                cell.Setup(x, y, m_boardController);
 
                 m_cells[x, y] = cell;
             }

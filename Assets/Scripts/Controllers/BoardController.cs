@@ -7,6 +7,9 @@ using UnityEngine;
 
 public class BoardController : MonoBehaviour
 {
+
+    private IdenticalBarController m_barController;
+
     public event Action OnMoveEvent = delegate { };
 
     public bool IsBusy { get; private set; }
@@ -31,7 +34,7 @@ public class BoardController : MonoBehaviour
 
     private bool m_gameOver;
 
-    public void StartGame(GameManager gameManager, GameSettings gameSettings)
+    public void StartGame(GameManager gameManager, GameSettings gameSettings, IdenticalBarController barController)
     {
         m_gameManager = gameManager;
 
@@ -41,7 +44,18 @@ public class BoardController : MonoBehaviour
 
         m_cam = Camera.main;
 
-        m_board = new Board(this.transform, gameSettings);
+        m_board = new Board(this.transform, gameSettings, this);
+
+        m_barController = barController;
+
+        if (m_barController != null)
+        {
+            m_barController.OnMatchMadeEvent += () => OnMoveEvent();
+        }
+        else
+        {
+            Debug.LogError("GameManager không thể tìm thấy IdenticalBarController thông qua UIMainManager!");
+        }
 
         Fill();
     }
@@ -302,5 +316,29 @@ public class BoardController : MonoBehaviour
         }
 
         m_potentialMatch.Clear();
+    }
+
+    public void OnCellClicked(Cell clickedCell)
+    {
+        if (m_barController == null) return;
+        if (IsBusy) return;
+
+        IsBusy = true;
+
+        Item itemToMove = clickedCell.Item;
+
+        bool addedSuccessfully = m_barController.AddItem(itemToMove);
+
+        if (addedSuccessfully)
+        {
+            clickedCell.Free(); 
+        }
+        else
+        {
+            clickedCell.EnableClick();
+            Debug.Log("Thanh chứa đã đầy!");
+        }
+
+        IsBusy = false;
     }
 }

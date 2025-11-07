@@ -1,46 +1,124 @@
+using System; 
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
+using System.Linq;
+using DG.Tweening; 
 
 public class IdenticalBarController : MonoBehaviour
 {
-    public GameObject itemPrefab;
+    private Camera m_mainCamera;
+    public List<Transform> slots;
 
-    public int itemCount = 5; 
-    public float spacing = 0f; 
-    public float startX = 0f;   
+    public float moveDuration = 0.2f;
 
-    private List<GameObject> items = new List<GameObject>();
+    public event Action OnMatchMadeEvent = delegate { };
+
+    private List<Item> m_itemsInBar = new List<Item>();
+
+    private bool m_isChecking = false;
 
     void Start()
     {
-        CreateItems();
+        m_mainCamera = Camera.main;
+    }
+    public bool AddItem(Item item)
+    {
+        if (m_itemsInBar.Count >= slots.Count)
+        {
+            return false;
+        }
+
+        m_itemsInBar.Add(item);
+
+        m_itemsInBar = m_itemsInBar
+            .OrderBy(it => (it as NormalItem)?.ItemType ?? 0)
+            .ToList();
+
+        RearrangeBarVisuals();
+
+        StartCoroutine(CheckForMatchesDelayed());
+
+        return true;
     }
 
-    void CreateItems()
+    private void RearrangeBarVisuals()
     {
-        if (itemPrefab == null)
+        if (m_mainCamera == null)
         {
-            Debug.LogError("No itemPrefab!");
-            return;
+            m_mainCamera = Camera.main;
+            if (m_mainCamera == null)
+            {
+                Debug.LogError("Main Camera!");
+                return;
+            }
         }
 
-        foreach (Transform child in transform)
+        for (int i = 0; i < m_itemsInBar.Count; i++)
         {
-            Destroy(child.gameObject);
-        }
-        items.Clear();
+            Item item = m_itemsInBar[i];
+            Transform targetSlot = slots[i]; 
 
-        for (int i = 0; i < itemCount; i++)
+            Vector3 screenPos = targetSlot.position;
+
+            Vector3 worldPos = m_mainCamera.ScreenToWorldPoint(screenPos);
+
+            worldPos.z = 0;
+
+            item.View.DOMove(worldPos, moveDuration).SetEase(Ease.OutQuad);
+
+            item.View.DOScale(0.7f, moveDuration);
+        }
+    }
+
+
+    private IEnumerator CheckForMatchesDelayed()
+    {
+        if (m_isChecking) yield break;
+        m_isChecking = true;
+
+        yield return new WaitForSeconds(moveDuration + 0.1f);
+
+        bool matchFound = false;
+
+        var groups = m_itemsInBar
+            .Where(it => it is NormalItem)
+            .Cast<NormalItem>()
+            .GroupBy(item => item.ItemType);
+
+        foreach (var group in groups)
         {
-            GameObject item = Instantiate(itemPrefab, transform);
-            RectTransform rt = item.GetComponent<RectTransform>();
+            if (group.Count() >= 3)
+            {
+                matchFound = true;
+                List<Item> itemsToExplode = group.Take(3).Cast<Item>().ToList();
 
-            float x = startX + i * spacing;
-            rt.anchoredPosition = new Vector2(x, 0);
+                foreach (Item item in itemsToExplode)
+                {
+                    m_itemsInBar.Remove(item);
 
-            items.Add(item);
+                    item.ExplodeView(); 
+                }
+
+                OnMatchMadeEvent();
+
+                break;
+            }
         }
+
+
+        if (matchFound)
+        {
+            yield return new WaitForSeconds(0.2f);
+            RearrangeBarVisuals();
+        }
+
+        if (!matchFound && m_itemsInBar.Count >= slots.Count)
+        {
+            Debug.Log("GAME OVER!");
+        }
+
+        m_isChecking = false;
+
     }
 }

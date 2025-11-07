@@ -25,16 +25,16 @@ public class LevelMoves : LevelCondition
 
     private void OnMove()
     {
-        if (m_conditionCompleted) return;
+        //if (m_conditionCompleted) return;
 
-        m_moves--;
+        //m_moves--;
 
-        UpdateText();
+        //UpdateText();
 
-        if(m_moves <= 0)
-        {
-            OnConditionComplete();
-        }
+        //if(m_moves <= 0)
+        //{
+        //    OnConditionComplete();
+        //}
     }
 
     protected override void UpdateText()
