@@ -78,7 +78,7 @@ public class BoardController : MonoBehaviour
                 break;
             case GameManager.eStateGame.GAME_OVER:
                 m_gameOver = true;
-                StopHints();
+                //StopHints();
                 break;
         }
     }
@@ -340,5 +340,22 @@ public class BoardController : MonoBehaviour
         }
 
         IsBusy = false;
+    }
+
+    public bool CheckIfBoardIsClear()
+    {
+        if (m_board == null) return false;
+        return m_board.IsBoardClear();
+    }
+
+    public void SetBusy(bool busy)
+    {
+        IsBusy = busy;
+    }
+    public List<Cell> GetAvailableCells()
+    {
+        if (m_board == null) return new List<Cell>();
+
+        return m_board.GetAllAvailableCells();
     }
 }

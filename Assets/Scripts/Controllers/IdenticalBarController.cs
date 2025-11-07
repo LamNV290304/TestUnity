@@ -7,7 +7,9 @@ using DG.Tweening;
 
 public class IdenticalBarController : MonoBehaviour
 {
+
     private Camera m_mainCamera;
+
     public List<Transform> slots;
 
     public float moveDuration = 0.2f;
@@ -111,14 +113,36 @@ public class IdenticalBarController : MonoBehaviour
         {
             yield return new WaitForSeconds(0.2f);
             RearrangeBarVisuals();
+
+
         }
 
         if (!matchFound && m_itemsInBar.Count >= slots.Count)
         {
-            Debug.Log("GAME OVER!");
+            GameManager.Instance.SetState(GameManager.eStateGame.GAME_OVER);
         }
 
         m_isChecking = false;
 
+    }
+
+    public void ClearBar()
+    {
+        foreach (Item item in m_itemsInBar)
+        {
+            if (item != null)
+            {
+                item.Clear(); 
+            }
+        }
+
+        m_itemsInBar.Clear();
+
+        m_isChecking = false;
+    }
+
+    public List<Item> GetItemsInBar()
+    {
+        return m_itemsInBar;
     }
 }

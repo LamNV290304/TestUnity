@@ -818,7 +818,36 @@ public class Board
             }
         }
     }
+    public bool IsBoardClear()
+    {
+        for (int x = 0; x < boardSizeX; x++)
+        {
+            for (int y = 0; y < boardSizeY; y++)
+            {
+                if (!m_cells[x, y].IsEmpty) 
+                {
+                    return false; 
+                }
+            }
+        }
+        return true; 
+    }
 
+    public List<Cell> GetAllAvailableCells()
+    {
+        List<Cell> availableCells = new List<Cell>();
+        for (int x = 0; x < boardSizeX; x++)
+        {
+            for (int y = 0; y < boardSizeY; y++)
+            {
+                if (!m_cells[x, y].IsEmpty)
+                {
+                    availableCells.Add(m_cells[x, y]);
+                }
+            }
+        }
+        return availableCells;
+    }
     public void MoveCellToBar()
     {
 

@@ -69,6 +69,9 @@ public class UIMainManager : MonoBehaviour
             case GameManager.eStateGame.GAME_OVER:
                 ShowMenu<UIPanelGameOver>();
                 break;
+            case GameManager.eStateGame.GAME_WIN:
+                ShowMenu<UIPanelGameWin>();
+                break;
         }
     }
 
@@ -122,5 +125,15 @@ public class UIMainManager : MonoBehaviour
     internal IdenticalBarController GetIdenticalBarController()
     {
         return GetComponentInChildren<IdenticalBarController>(true);
+    }
+
+    internal void StartAutoplayWin()
+    {
+        m_gameManager.StartAutoplay(GameManager.eLevelMode.MOVES, true);
+    }
+
+    internal void StartAutoplayLose()
+    {
+        m_gameManager.StartAutoplay(GameManager.eLevelMode.MOVES, false);
     }
 }

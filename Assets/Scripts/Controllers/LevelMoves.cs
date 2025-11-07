@@ -31,7 +31,7 @@ public class LevelMoves : LevelCondition
 
         //UpdateText();
 
-        //if(m_moves <= 0)
+        //if (m_moves <= 0)
         //{
         //    OnConditionComplete();
         //}

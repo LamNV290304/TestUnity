@@ -2,12 +2,14 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
     public event Action<eStateGame> StateChangedAction = delegate { };
 
+    public static GameManager Instance { get; private set; }
     public enum eLevelMode
     {
         TIMER,
@@ -21,6 +23,7 @@ public class GameManager : MonoBehaviour
         GAME_STARTED,
         PAUSE,
         GAME_OVER,
+        GAME_WIN
     }
 
     private eStateGame m_state;
@@ -44,9 +47,13 @@ public class GameManager : MonoBehaviour
     private UIMainManager m_uiMenu;
 
     private LevelCondition m_levelCondition;
+    private IdenticalBarController m_barController; 
+    private Coroutine m_autoplayRoutine;
+    private bool m_isAutoplay = false;
 
     private void Awake()
     {
+        Instance = this;
         State = eStateGame.SETUP;
 
         m_gameSettings = Resources.Load<GameSettings>(Constants.GAME_SETTINGS_PATH);
@@ -86,7 +93,7 @@ public class GameManager : MonoBehaviour
         m_boardController = new GameObject("BoardController").AddComponent<BoardController>();
         IdenticalBarController barController = m_uiMenu.GetIdenticalBarController();
         m_boardController.StartGame(this, m_gameSettings, barController);
-
+        m_barController = barController;
         if (mode == eLevelMode.MOVES)
         {
             m_levelCondition = this.gameObject.AddComponent<LevelMoves>();
@@ -95,10 +102,11 @@ public class GameManager : MonoBehaviour
         else if (mode == eLevelMode.TIMER)
         {
             m_levelCondition = this.gameObject.AddComponent<LevelTime>();
-            m_levelCondition.Setup(m_gameSettings.LevelMoves, m_uiMenu.GetLevelConditionView(), this);
+            m_levelCondition.Setup(m_gameSettings.LevelTime, m_uiMenu.GetLevelConditionView(), this);
         }
 
         m_levelCondition.ConditionCompleteEvent += GameOver;
+        m_boardController.OnMoveEvent += CheckForWin;
 
         State = eStateGame.GAME_STARTED;
     }
@@ -110,6 +118,20 @@ public class GameManager : MonoBehaviour
 
     internal void ClearLevel()
     {
+        if (m_uiMenu != null)
+        {
+            IdenticalBarController barController = m_uiMenu.GetIdenticalBarController();
+            if (barController != null)
+            {
+                barController.ClearBar(); 
+            }
+        }
+        m_isAutoplay = false;
+        if (m_autoplayRoutine != null)
+        {
+            StopCoroutine(m_autoplayRoutine);
+            m_autoplayRoutine = null;
+        }
         if (m_boardController)
         {
             m_boardController.Clear();
@@ -131,10 +153,150 @@ public class GameManager : MonoBehaviour
 
         if (m_levelCondition != null)
         {
+            if (m_boardController != null)
+            {
+                m_boardController.OnMoveEvent -= CheckForWin;
+            }
+
             m_levelCondition.ConditionCompleteEvent -= GameOver;
 
             Destroy(m_levelCondition);
             m_levelCondition = null;
         }
+    }
+
+    private void CheckForWin()
+    {
+        if (m_boardController == null) return;
+
+        if (m_boardController.CheckIfBoardIsClear())
+        {
+            m_boardController.SetBusy(true);
+
+            SetState(eStateGame.GAME_WIN);
+        }
+    }
+
+    public void StartAutoplay(eLevelMode mode, bool autoWin)
+    {
+        if (mode != eLevelMode.MOVES)
+        {
+            Debug.LogError("Autoplay chỉ hỗ trợ chế độ MOVES!");
+            return;
+        }
+
+        m_isAutoplay = true;
+
+        LoadLevel(mode);
+
+        m_autoplayRoutine = StartCoroutine(AutoplayRoutine(autoWin));
+    }
+
+    private IEnumerator AutoplayRoutine(bool autoWin)
+    {
+        yield return new WaitForSeconds(1.0f);
+
+        while (m_state == eStateGame.GAME_STARTED && m_isAutoplay)
+        {
+            yield return new WaitForSeconds(0.5f);
+
+            if (m_boardController == null) yield break;
+            yield return new WaitUntil(() => !m_boardController.IsBusy);
+
+            Cell cellToClick = null;
+            if (autoWin)
+            {
+                cellToClick = FindBestMoveToWin();
+            }
+            else
+            {
+                cellToClick = FindBestMoveToLose();
+            }
+
+            if (cellToClick != null)
+            {
+                m_boardController.OnCellClicked(cellToClick);
+            }
+            else
+            {
+                Debug.Log("AUTOPLAY: Không tìm thấy nước đi. Dừng lại.");
+                m_isAutoplay = false;
+                break;
+            }
+        }
+    }
+
+    private Cell FindBestMoveToWin()
+    {
+        List<Cell> availableCells = m_boardController.GetAvailableCells(); 
+        if (availableCells.Count == 0) return null;
+
+        List<Item> itemsInBar = m_barController.GetItemsInBar(); 
+
+        var barCounts = itemsInBar
+            .OfType<NormalItem>() 
+            .GroupBy(item => item.ItemType) 
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        foreach (var cell in availableCells)
+        {
+            NormalItem item = cell.Item as NormalItem; 
+            if (item == null) continue;
+
+            if (barCounts.ContainsKey(item.ItemType) && barCounts[item.ItemType] == 2)
+            {
+                return cell; 
+            }
+        }
+
+        foreach (var cell in availableCells)
+        {
+            NormalItem item = cell.Item as NormalItem;
+            if (item == null) continue;
+
+            if (barCounts.ContainsKey(item.ItemType) && barCounts[item.ItemType] == 1)
+            {
+                return cell; 
+            }
+        }
+
+        return availableCells[0];
+    }
+
+    private Cell FindBestMoveToLose()
+    {
+        List<Cell> availableCells = m_boardController.GetAvailableCells();
+        if (availableCells.Count == 0) return null;
+
+        List<Item> itemsInBar = m_barController.GetItemsInBar();
+
+        var barCounts = itemsInBar
+            .OfType<NormalItem>()
+            .GroupBy(item => item.ItemType)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        foreach (var cell in availableCells)
+        {
+            NormalItem item = cell.Item as NormalItem;
+            if (item == null) continue;
+
+            if (!barCounts.ContainsKey(item.ItemType))
+            {
+                return cell;
+            }
+        }
+
+        foreach (var cell in availableCells)
+        {
+            NormalItem item = cell.Item as NormalItem;
+            if (item == null) continue;
+
+            if (barCounts.ContainsKey(item.ItemType) && barCounts[item.ItemType] == 1)
+            {
+                return cell;
+            }
+        }
+
+        return availableCells[0];
     }
 }
