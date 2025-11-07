@@ -98,17 +98,26 @@ public class Item
     {
         if (View)
         {
-            View.DOScale(0.1f, 0.1f).OnComplete(
-                () =>
-                {
-                    GameObject.Destroy(View.gameObject);
-                    View = null;
-                }
-                );
+            SpriteRenderer sp = View.GetComponent<SpriteRenderer>();
+
+            Sequence s = DOTween.Sequence();
+
+            s.Append(View.DORotate(new Vector3(0, 0, 90), 0.3f).SetEase(Ease.OutQuad));
+
+            s.Join(View.DOScale(0.1f, 0.3f).SetEase(Ease.InBack)); 
+
+            if (sp != null)
+            {
+                s.Join(sp.DOFade(0f, 0.3f));
+            }
+
+            s.OnComplete(() =>
+            {
+                GameObject.Destroy(View.gameObject);
+                View = null;
+            });
         }
     }
-
-
 
     internal void AnimateForHint()
     {

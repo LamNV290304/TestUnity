@@ -67,9 +67,9 @@ public class IdenticalBarController : MonoBehaviour
 
             worldPos.z = 0;
 
-            item.View.DOMove(worldPos, moveDuration).SetEase(Ease.OutQuad);
+            item.View.DOMove(worldPos, moveDuration).SetEase(Ease.OutBack);
 
-            item.View.DOScale(0.7f, moveDuration);
+            item.View.DOScale(0.7f, moveDuration).SetEase(Ease.OutBack);
         }
     }
 
